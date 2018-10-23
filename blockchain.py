@@ -1,9 +1,11 @@
 #things to add to improve the project
-	#1. : traces so that could be easily debugged
+    #1. : traces so that could be easily debugged
 #------------------------------------------------------------------------------------------------------------------------------------------
 #bugs to fix
-	#problem 1(FIXED): transactions should be saved in orderddict : if not saved transactions are being retrived and saved in as ordered dictionary 
-	#problem 2(FIXED): if previous block entries are changed there should be verification of block chain and it should be found ko before loading the data
+    #problem 1(FIXED): transactions should be saved in orderddict : if not saved transactions are being retrived and saved in as ordered dictionary 
+    #problem 2(FIXED): if previous block entries are changed there should be verification of block chain and it should be found ko before loading the data
+    #problem 3: show participants is not working properly, only showing the current owner of the chain
+    #problem 4: handle the errors when blockchain.txt is deleted or not present & sombody calls the api
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
 #use this package for reduce functionality
@@ -17,61 +19,122 @@ import pickle
 #user created:
 import hash_util
 
+# commenting the code to initilize the blockchain with gensis block becuase it
+# will now be done in load_json_data
 
 # initializing the blockchain list
-genesis_block = {
-    'key': "",
-    'index': 0,
-    'proof' : '',
-    'transactions': [],
-}
-blockchain = [genesis_block]
+#genesis_block = {
+#    'key': "",
+#    'index': 0,
+#    'proof' : '',
+#    'transactions': [],
+#}
+#blockchain = [genesis_block]
+
+blockchain = []
 open_transactions = []
 owner = 'Tarun'
 participants = set(['Tarun'])
 MINING_REWARD = 10.0
 
 def unpickle_load_data():
-    with open('blockchain.pickle', 'rb') as f:
-        file_content = pickle.loads(f.read()) 
-        global blockchain
-        global open_transactions
-        blockchain = file_content['chain']
-        open_transactions = file_content['ot']
+    
+    global blockchain
+    global open_transactions
+
+    try:
+        with open('blockchain.pickle', 'rb') as f:
+            file_content = pickle.loads(f.read()) 
+            blockchain = file_content['chain']
+            open_transactions = file_content['ot']
+
+    #in case the file is present but empty it will throw "IndexError"
+    except (IOError, IndexError):
+        print("-" * 25)
+        print("File not Found") 
+        print("-" * 25)
+        
+        # initializing the blockchain list
+        genesis_block = {
+            'key': "",
+            'index': 0,
+            'proof' : '',
+            'transactions': [],
+        }
+        blockchain = [genesis_block]
+        open_transactions = []
+
+    finally:
+        print("CleanUp")
 
 def pickle_save_data():
-    with open('blockchain.pickle', 'wb') as f:
-        f.write(pickle.dumps({'chain' : blockchain, 'ot' : open_transactions}))
-
-
+    try:
+        with open('blockchain.pickle', 'wb') as f:
+                f.write(pickle.dumps({'chain' : blockchain, 'ot' : open_transactions}))
+    except IOError:
+        print("Saving Failed")
+    
 def json_load_data():
-    with open('blockchain.txt', 'r') as f:
-        global blockchain
-        global open_transactions
+    
+    global blockchain
+    global open_transactions
+    
+    try:
+        with open('blockchain.txt', 'r') as f:
+            
+            # read file content 
+            file_content = f.readlines()
+            
+            # the [-1] to account for the \n character at the end of the string retrived from saved file
+            blockchain = json.loads(file_content[0][:-1])
+            
+            # changing the type of transaction dictinaries in blocks from normal dictionaries to OrderedDicts
+            updated_blockchain = []
+           
+            # update the blockchain with data stored in blockchain.txt
+            for block in blockchain:
+                updated_block = {
+                    'key' : block['key'],
+                    'index' : block['index'],
+                    'proof' : block['proof'],
+                    'transactions' : [OrderedDict([('sender',tx['sender']),('recipient',tx['recipient']),('amount',tx['amount'])]) for tx in block['transactions']]
+                }
+                updated_blockchain.append(updated_block)
+            
+            blockchain = updated_blockchain
+            
+            # changing the type of transactions dictionaries from normal dictionaries to OrderedDicts in open_transactions 
+            open_transactions = json.loads(file_content[1])
+            open_transactions = [OrderedDict([('sender',tx['sender']),('recipient',tx['recipient']),('amount',tx['amount'])]) for tx in open_transactions]
+    
+    #in case the file is present but empty it will throw "IndexError"
+    except (IOError, IndexError):
+        print("-"*25)
+        print("file not found")
+        print("Initializing...")
+        print("-"*25)
         
-        file_content = f.readlines()
-        # the [-1] to account for the \n character at the end of the string retrived from saved file
-        blockchain = json.loads(file_content[0][:-1])
-        # changing the type of transaction dictinaries in blocks from normal dictionaries to OrderedDicts
-        updated_blockchain = []
-        for block in blockchain:
-            updated_block = {
-                'key' : block['key'],
-                'index' : block['index'],
-                'proof' : block['proof'],
-                'transactions' : [OrderedDict([('sender',tx['sender']),('recipient',tx['recipient']),('amount',tx['amount'])]) for tx in block['transactions']]
-            }
-            updated_blockchain.append(updated_block)
-        blockchain = updated_blockchain
-        # changing the type of transactions dictionaries from normal dictionaries to OrderedDicts in open_transactions 
-        open_transactions = json.loads(file_content[1])
-        open_transactions = [OrderedDict([('sender',tx['sender']),('recipient',tx['recipient']),('amount',tx['amount'])]) for tx in open_transactions] 
-
+        # initializing the blockchain list
+        genesis_block = {
+            'key': "",
+            'index': 0,
+            'proof' : '',
+            'transactions': [],
+        }
+        blockchain = [genesis_block]
+        open_transactions = []
+            
+    finally:
+        print("CleanUp")
+    
 def json_save_data():
-    with open('blockchain.txt','w') as f:
-        f.write(json.dumps(blockchain))
-        f.write('\n')
-        f.write(json.dumps(open_transactions))
+    try:
+        with open('blockchain.txt','w') as f:
+            f.write(json.dumps(blockchain))
+            f.write('\n')
+            f.write(json.dumps(open_transactions))
+    except IOError:
+        print("Saving Failed...")
 
 def get_last_blockchain_value():
     """returns last value of current blockchain."""
