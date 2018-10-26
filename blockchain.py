@@ -280,9 +280,7 @@ while True:
     print("h : Manipulate blockchain.")
     print("m : mine a new block.")
     print("q : Exit Block Chain.")
-    print("r : reload blockchain from saved data")
-    print("s : save blockchain")
-
+    
     user_choice =  get_user_choice()
     if user_choice == '1':
         tx = get_transaction_value()
@@ -312,10 +310,6 @@ while True:
             open_transactions = []
     elif user_choice == 'q':
         break
-    elif user_choice == 'r':
-        json_load_data()
-    elif user_choice == 's':
-        json_save_data()
     else:
         print("INVALID INPUT")
 
