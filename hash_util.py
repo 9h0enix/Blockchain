@@ -10,6 +10,8 @@ def compute_hash(block):
 #    for tx in block['transactions']:
 #        hash_key += tx['sender'] + tx['recipient'] + str(tx['amount']) + '-'
 #    return hash_key
-     return hash_string_256(json.dumps(block, sort_keys=True).encode())
+     # need a copy of dictionary for the hash block
+     hashable_block = block.__dict__.copy()
+     return hash_string_256(json.dumps(hashable_block, sort_keys=True).encode())
 
 
